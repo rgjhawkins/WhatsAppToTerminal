@@ -5,6 +5,9 @@ const { callClaude } = require('./claude-bridge');
 const { chunkMessage, extractResponseText, formatCostInfo } = require('./utils');
 const { transcribeAudio } = require('./transcribe');
 const { saveImage, cleanupImage } = require('./image-handler');
+const { sendMediaFiles } = require('./media-sender');
+const fs = require('fs');
+const path = require('path');
 
 // Chats where the bot is currently busy (processing or just replied)
 const busyChats = new Set();
@@ -54,12 +57,23 @@ async function handleCommand(msg, chat) {
     return true;
   }
 
+  if (body === '/reload') {
+    busyChats.add(msg.from);
+    await chat.sendMessage('Reloading... back in a few seconds.');
+    // Touch a src file to trigger --watch-path restart
+    const touchFile = path.resolve(__dirname, 'index.js');
+    const now = new Date();
+    fs.utimesSync(touchFile, now, now);
+    return true;
+  }
+
   if (body === '/help') {
     busyChats.add(msg.from);
     await chat.sendMessage(
       `*Commands*\n` +
       `/reset — Start a fresh Claude conversation\n` +
       `/status — Show current session info\n` +
+      `/reload — Restart the bridge (after code changes)\n` +
       `/help — Show this message\n\n` +
       `Any other message is sent to Claude Code.`
     );
@@ -110,6 +124,9 @@ async function processMessage(msg) {
 
     await chat.clearState();
     await sendChunked(chat, fullResponse);
+
+    // Send any media files Claude created
+    await sendMediaFiles(chat);
 
     // Stay busy for 2s after sending to ignore the echo
     setTimeout(() => busyChats.delete(chatId), 2000);

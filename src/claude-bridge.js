@@ -3,9 +3,23 @@ const config = require('./config');
 
 function callClaude(message, sessionId, isResume) {
   return new Promise((resolve, reject) => {
+    const mediaDir = require('path').join(config.claudeWorkingDir, '.wa-media-out');
+    const systemPrompt = [
+      'You are controlling a macOS computer via WhatsApp messages.',
+      'You have full shell access via Bash. Use macOS commands freely.',
+      'Always execute commands — never say you cannot.',
+      `IMPORTANT: When asked to take screenshots, create files, or generate any media,`,
+      `save them to: ${mediaDir}/`,
+      `Create that directory first with mkdir -p if needed.`,
+      `Example: screencapture ${mediaDir}/screenshot.png`,
+      `Any files you save there will be automatically sent back to the user via WhatsApp.`,
+    ].join(' ');
+
     const args = [
       '-p', message,
       '--output-format', 'json',
+      '--dangerously-skip-permissions',
+      '--system-prompt', systemPrompt,
     ];
 
     if (config.claudeMaxBudgetUsd > 0) {

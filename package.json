@@ -4,7 +4,7 @@
   "description": "Bridge WhatsApp messages to Claude Code CLI",
   "main": "src/index.js",
   "scripts": {
-    "start": "node src/index.js"
+    "start": "node --watch-path=src src/index.js"
   },
   "keywords": [],
   "author": "",
